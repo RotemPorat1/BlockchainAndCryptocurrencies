@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MetaMask Integration</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .modal {
+      display: none; 
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.4); 
+    }
+
+    .modal-content {
+      background-color: #fefefe;
+      margin: 15% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 400px;
+    }
+
+    .close-btn {
+      color: #aaa;
+      font-size: 28px;
+      font-weight: bold;
+      position: absolute;
+      top: 10px;
+      right: 25px;
+    }
+
+    .close-btn:hover,
+    .close-btn:focus {
+      color: black;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .container {
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 40px;
+      text-align: center;
+      background-color: rgba(99, 102, 241, 0.1);
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+    }
+
+    h1 {
+      color: #6366f1;
+    }
+
+    button {
+      background-color: #6366f1;
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      font-size: 18px;
+      cursor: pointer;
+      margin: 10px;
+      border-radius: 8px;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #4338ca;
+    }
+
+    textarea {
+      width: calc(100% - 40px);
+      padding: 10px;
+      box-sizing: border-box;
+      margin: 10px auto;
+      display: block;
+      text-align: center;
+      border: 1px solid #6366f1;
+      border-radius: 8px;
+    }
+
+    .button-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+
+    .button-container>* {
+      margin: 10px;
+    }
+
+    img {
+      margin: 10px;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+    }
+
+    .message {
+      margin-bottom: 20px;
+      padding: 10px;
+      border-radius: 5px;
+      display: inline-block;
+      width: 100%;
+    }
+
+    .success {
+      background-color: rgba(99, 102, 241, 0.1);
+      color: #4338ca;
+      border: 1px solid #6366f1;
+    }
+
+    .error {
+      background-color: #fee2e2;
+      color: #dc2626;
+      border: 1px solid #dc2626;
+    }
+
+    #btn6 {
+      background-color: #dc2626;
+      margin-top: 8px;
+    }
+
+    #btn6:hover {
+      background-color: #b91c1c;
+    }
+
+    #userInput {
+      width: 60%;
+      margin: 10px auto;
+    }
+
+    .note {
+      color: #4338ca;
+      font-size: 1.2em;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.5.0/web3.min.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Vote with MetaMask!</h1>
+    <button id="openModalBtn">Learn How to Vote</button>
+    <div id="voteModal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h3>How to Vote</h3>
+        <p>1. Connect to MetaMask by clicking the "Connect MetaMask" button.</p>
+        <p>2. Choose your candidate by clicking one of the vote buttons.</p>
+        <p>3. Confirm your vote and submit it to cast your vote securely.</p>
+        <button onclick="closeModal()">Close</button>
+      </div>
+    </div>
+    <button onclick="connectMetaMask()">Connect to Your Wallet</button>
+    <button onclick="connectContract()">Connect to Smart Contract</button>
+    <textarea id="userInput" placeholder="Enter Voter's MetaMask Address"></textarea>
+    <button id="btn3" onclick="addYourVoteCoin(document.getElementById('userInput').value)" class="disabled">
+      Enter Your Address to Vote
+    </button>
+
+    <div class="note">
+      Connect your MetaMask and link the smart contract! Make your vote count!
+    </div>
+
+    <div class="button-container">
+      <div style="display: flex; align-items: center;">
+        <button id="btn4" onclick="vote1()" class="disabled">
+          Vote For Rotem
+        </button>
+      </div>
+      <div style="display: flex; align-items: center;">
+        <button id="btn5" onclick="vote2()" class="disabled">
+          Vote For Ofir
+        </button>
+      </div>
+      <button id="btn6" onclick="burnMyVote()" class="disabled">
+        Cancel My Vote
+      </button>
+      <img
+        src="data:image/jpeg;base64,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"
+        alt="Voting Icon" class="vote-icon" />
+    </div>
+
+    <div id="messageContainer"></div>
+
+    <a href="https://testnet.bscscan.com/address/0x579b074840eEED33e149279D69dCF0C8Fb461d44">View the transaction on the
+      blockchain here!</a>
+  </div>
+
+  <script>
+    // Initialize Web3 and contract variables
+    let web3;
+    let contract; // Define contract at a higher scope
+    let userAddress;
+    let validAdress = false;
+    let privateKey;
+    let contractAddress = "0x4dCeEF8FCA14C157b992566389C062AcF37bB49e"; // our contract address
+    
+document.getElementById("openModalBtn").onclick = function() {
+      document.getElementById("voteModal").style.display = "block";
+    };
+
+    function closeModal() {
+      document.getElementById("voteModal").style.display = "none";
+    }
+
+    document.getElementsByClassName("close-btn")[0].onclick = function() {
+      closeModal();
+    }
+
+    window.onclick = function(event) {
+      if (event.target == document.getElementById("voteModal")) {
+        closeModal();
+      }
+    }
+
+
+    // Function to connect to MetaMask
+    async function connectMetaMask() {
+      try {
+        console.log("Connecting to MetaMask...");
+
+        if (window.ethereum) {
+          await window.ethereum.request({ method: "eth_requestAccounts" });
+          web3 = new Web3(window.ethereum);
+          showMessage("Connected to MetaMask", "success");
+          console.log("Connected to MetaMask successfully.");
+        } else {
+          showMessage("MetaMask not found", "error");
+          console.error("MetaMask not found.");
+        }
+      } catch (error) {
+        showMessage(
+          "Error connecting to MetaMask: " + error.message,
+          "error"
+        );
+        console.error("Error connecting to MetaMask:", error);
+      }
+    }
+
+    // Function to connect to a smart contract
+
+    async function connectContract() {
+      try {
+        const abi = [
+
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "spender",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "allowance",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "needed",
+                "type": "uint256"
+              }
+            ],
+            "name": "ERC20InsufficientAllowance",
+            "type": "error"
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "sender",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "balance",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "needed",
+                "type": "uint256"
+              }
+            ],
+            "name": "ERC20InsufficientBalance",
+            "type": "error"
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "approver",
+                "type": "address"
+              }
+            ],
+            "name": "ERC20InvalidApprover",
+            "type": "error"
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "receiver",
+                "type": "address"
+              }
+            ],
+            "name": "ERC20InvalidReceiver",
+            "type": "error"
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "sender",
+                "type": "address"
+              }
+            ],
+            "name": "ERC20InvalidSender",
+            "type": "error"
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "spender",
+                "type": "address"
+              }
+            ],
+            "name": "ERC20InvalidSpender",
+            "type": "error"
+          },
+          {
+            "anonymous": false,
+            "inputs": [
+              {
+                "indexed": true,
+                "internalType": "address",
+                "name": "owner",
+                "type": "address"
+              },
+              {
+                "indexed": true,
+                "internalType": "address",
+                "name": "spender",
+                "type": "address"
+              },
+              {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              }
+            ],
+            "name": "Approval",
+            "type": "event"
+          },
+          {
+            "anonymous": false,
+            "inputs": [
+              {
+                "indexed": true,
+                "internalType": "address",
+                "name": "from",
+                "type": "address"
+              },
+              {
+                "indexed": true,
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              }
+            ],
+            "name": "Transfer",
+            "type": "event"
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "spender",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              }
+            ],
+            "name": "approve",
+            "outputs": [
+              {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+              }
+            ],
+            "stateMutability": "nonpayable",
+            "type": "function"
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              }
+            ],
+            "name": "burn",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "account",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              }
+            ],
+            "name": "burnFrom",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              }
+            ],
+            "name": "transfer",
+            "outputs": [
+              {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+              }
+            ],
+            "stateMutability": "nonpayable",
+            "type": "function"
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "from",
+                "type": "address"
+              },
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              }
+            ],
+            "name": "transferFrom",
+            "outputs": [
+              {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+              }
+            ],
+            "stateMutability": "nonpayable",
+            "type": "function"
+          },
+          {
+            "inputs": [],
+            "stateMutability": "nonpayable",
+            "type": "constructor"
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "owner",
+                "type": "address"
+              },
+              {
+                "internalType": "address",
+                "name": "spender",
+                "type": "address"
+              }
+            ],
+            "name": "allowance",
+            "outputs": [
+              {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+              }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "account",
+                "type": "address"
+              }
+            ],
+            "name": "balanceOf",
+            "outputs": [
+              {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+              }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [],
+            "name": "decimals",
+            "outputs": [
+              {
+                "internalType": "uint8",
+                "name": "",
+                "type": "uint8"
+              }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [],
+            "name": "name",
+            "outputs": [
+              {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
+              }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [],
+            "name": "symbol",
+            "outputs": [
+              {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
+              }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [],
+            "name": "totalSupply",
+            "outputs": [
+              {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+              }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+          },
+        ];
+        // Replace with your contract ABI
+
+        contract = new web3.eth.Contract(abi, contractAddress); // Assign to the higher-scoped variable
+        showMessage("Connected to smart contract", "success");
+      } catch (error) {
+        showMessage(
+          "Error connecting to smart contract: " + error.message,
+          "error"
+        );
+      }
+    }
+
+    async function addYourVoteCoin(userText) {
+      // Your function here
+      userAddress = userText;
+
+      if (!userAddress.startsWith("0x")) {
+        showMessage("Error Please Write a valid address", "error");
+        return;
+      }
+      showMessage("You have a single vote, make it count!", "success");
+      validAdress = true;
+    }
+
+    async function vote1() {
+      try {
+        console.log("Fetching data from contract...");
+        if (!validAdress) {
+          showMessage("Add Your wallet before Voting", "error");
+          return;
+        }
+        // Check if conditions are met before calling transfer function
+        if (web3 && contract) {
+          // Additional checks can be added here before calling the transfer function
+          const txParams = {
+            to: "0xcBf4591D56fc4fdd0840d670071c757B6825C208",
+            value: web3.utils.toWei("1", "ether"),
+            gas: 21000,
+            gasPrice: web3.utils.toWei("10", "gwei"),
+            nonce: await web3.eth.getTransactionCount(userAddress),
+          };
+
+          const signedTx = await web3.eth.accounts.signTransaction(
+            txParams,
+            "0xc1ee6da8aad76bc85fdb2e7c302bd5fa3ca605b42e9dea27029df1a2e1a60a56"
+            // privateKey
+          );
+
+          const data = await contract.methods
+            .transfer(
+              "0xcBf4591D56fc4fdd0840d670071c757B6825C208",
+              100000000000000
+            )
+            .send({ from: userAddress, signedTx });
+          showMessage(
+            "Thank you for your vote!, soon you will be able to see all the data from your vote.",
+            "success"
+          );
+          alert("Data fetched successfully:", data);
+          showMessage(
+            "Data from contract:<br>transactionHash - >  " +
+            data.transactionHash +
+            "<br>blockNumber - > " +
+            data.blockNumber +
+            "<br>blockHash - > " +
+            data.blockHash +
+            "<br>transactionIndex - > " +
+            data.transactionIndex +
+            "<br>Contract address - > " +
+            contractAddress +
+            "<br>From - > " +
+            userAddress +
+            "<br>To - > 0xcBf4591D56fc4fdd0840d670071c757B6825C208",
+            "success"
+          );
+        } else {
+          showMessage("Web3 or contract not initialized", "error");
+        }
+      } catch (error) {
+        console.error("Error fetching data from contract:", error);
+        showMessage(
+          "Error fetching data from contract: " + error.message,
+          "error"
+        );
+      }
+    }
+
+    async function vote2() {
+      try {
+        console.log("Fetching data from contract...");
+        if (!validAdress) {
+          showMessage("Add Your wallet before Voting", "error");
+          return;
+        }
+        // Check if conditions are met before calling transfer function
+        if (web3 && contract) {
+          // Additional checks can be added here before calling the transfer function
+          const txParams = {
+            to: "0x4dCeEF8FCA14C157b992566389C062AcF37bB49e",
+            value: web3.utils.toWei("1", "ether"),
+            gas: 21000,
+            gasPrice: web3.utils.toWei("10", "gwei"),
+            nonce: await web3.eth.getTransactionCount(userAddress),
+          };
+
+          const signedTx = await web3.eth.accounts.signTransaction(
+            txParams,
+            "8d68185499637e9f3e6d384ddc917b73333894a541b68e828a548b24b750e884"
+            // privateKey
+          );
+
+          const data = await contract.methods
+            .transfer(
+              "0x4dCeEF8FCA14C157b992566389C062AcF37bB49e",
+              100000000000000
+            )
+            .send({ from: userAddress, signedTx });
+          showMessage(
+            "Thank you for your vote!, soon you will be able to see all the data from your vote.",
+            "success"
+          );
+          console.log("Data fetched successfully:", data);
+          showMessage(
+            "Data from contract:<br>transactionHash - >  " +
+            data.transactionHash +
+            "<br>blockNumber - > " +
+            data.blockNumber +
+            "<br>blockHash - > " +
+            data.blockHash +
+            "<br>transactionIndex - > " +
+            data.transactionIndex +
+            "<br>Contract address - > " +
+            contractAddress +
+            "<br>From - > " +
+            userAddress +
+            "<br>To - > 0x4dCeEF8FCA14C157b992566389C062AcF37bB49e",
+            "success"
+          );
+        } else {
+          showMessage("Web3 or contract not initialized", "error");
+        }
+      } catch (error) {
+        console.error("Error fetching data from contract:", error);
+        showMessage(
+          "Error fetching data from contract: " + error.message,
+          "error"
+        );
+      }
+    }
+
+    async function burnMyVote() {
+      try {
+        console.log("Fetching data from contract...");
+        if (!validAdress) {
+          showMessage("Add Your wallet before burning", "error");
+          return;
+        }
+        // Check if conditions are met before calling transfer function
+        if (web3 && contract) {
+          // Additional checks can be added here before calling the transfer function
+          const data = await contract.methods
+            .burn(100000000000000)
+            .send({ from: userAddress });
+          console.log("Data fetched successfully:", data);
+          showMessage(
+            "Data from contract:<br>transactionHash - >  " +
+            data.transactionHash +
+            "<br>blockNumber - > " +
+            data.blockNumber +
+            "<br>blockHash - > " +
+            data.blockHash +
+            "<br>transactionIndex - > " +
+            data.transactionIndex +
+            "<br>Contract address - > " +
+            contractAddress +
+            "<br>From - > " +
+            userAddress +
+            "<br>To - > 0xDbf2f44D67e2d892f85E3DE553BB7fb4606A8bdC",
+            "success"
+          );
+        } else {
+          showMessage("Web3 or contract not initialized", "error");
+        }
+      } catch (error) {
+        console.error("Error fetching data from contract:", error);
+        showMessage(
+          "Error fetching data from contract: " + error.message,
+          "error"
+        );
+      }
+    }
+
+    // Function to display messages on the screen
+    function showMessage(message, type) {
+      const messageContainer = document.getElementById("messageContainer");
+      messageContainer.innerHTML = "";
+
+      const msgElement = document.createElement("div");
+      msgElement.innerHTML = message.replace(/\n/g, "<br>");
+      msgElement.classList.add("message", type);
+      messageContainer.appendChild(msgElement);
+    }
+
+    // Event listeners for buttons
+    document
+      .getElementById("connectMetaMask")
+      .addEventListener("click", connectMetaMask);
+    document
+      .getElementById("connectContract")
+      .addEventListener("click", connectContract);
+  </script>
+</body>
+
+</html>
